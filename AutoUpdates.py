@@ -27,7 +27,23 @@ except Exception as e:
     logging.critical(f"Failed to authenticate with Domo: {e}")
     exit(1)
 
-DATASET_ID = 'e8dc595b-f5be-4cfd-aab9-9b374e483efa'
+from pydomo import Domo
+
+# Create schema from DataFrame
+schema = [{"name": col, "type": "STRING"} for col in new_data.columns]
+
+# Create a new dataset with load_timestamp included
+dataset = domo.datasets.create({
+    "name": "NOAA Storm Events with Timestamp",
+    "description": "Includes load_timestamp for freshness monitoring",
+    "schema": {"columns": schema}
+})
+
+# Upload the data
+with tempfile.NamedTemporaryFile(mode='w', suffix='.csv', delete=False) as tmpfile:
+    new_data.to_csv(tmpfile.name, index=False)
+    domo.datasets.data_import_from_file(dataset['id'], tmpfile.name, update_method='REPLACE')
+
 
 # Load list of already uploaded files
 log_file = 'uploaded_files.txt'
