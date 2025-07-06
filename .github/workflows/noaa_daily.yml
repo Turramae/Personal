@@ -20,4 +20,4 @@ jobs:
         env:
           CLIENT_ID: ${{ secrets.DOMO_CLIENT_ID }}
           CLIENT_SECRET: ${{ secrets.DOMO_CLIENT_SECRET }}
-        run: python your_script.py
+        run: python AutoUpdates.py
