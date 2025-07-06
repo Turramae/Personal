@@ -1,68 +1,52 @@
 import requests
 from bs4 import BeautifulSoup
+from datetime import datetime
 import os
 import pandas as pd
 from tqdm import tqdm
-from pydomo import Domo
-import tempfile
 
 # Setup
-client_id = '152fe71a-bc33-42b3-a38b-e0e82615f71f'
-client_secret = 'a5adb7f9e13561d3371971fa6883639c73c87189cdb626f363aad2449b487495'
-domo = Domo(client_id, client_secret, api_host='api.domo.com')
-
-# Domo dataset ID
-DATASET_ID = 'NOAA Storm Events'
-
-# Log file to track downloaded files
-log_file = 'uploaded_files.txt'
-if not os.path.exists(log_file):
-    with open(log_file, 'w') as f:
-        pass
-
-with open(log_file, 'r') as f:
-    already_uploaded = set(line.strip() for line in f)
-
-# Scrape NOAA Directory
 base_url = 'https://www.ncei.noaa.gov/pub/data/swdi/stormevents/csvfiles/'
+output_dir = "noaa_csvs"
+os.makedirs(output_dir, exist_ok=True)
+
+# Get current date in format like: "2025-07-02"
+today_str = datetime.utcnow().strftime('%Y-%b-%d') 
+
+# Get the HTML index
 response = requests.get(base_url)
 soup = BeautifulSoup(response.text, 'html.parser')
 
-file_links = [
-    base_url + node.get('href') 
-    for node in soup.find_all('a') 
-    if node.get('href') and node.get('href').endswith('.csv.gz')
-]
+# Find all links with their parent row's text (includes date)
+rows = soup.find_all('tr')
 
-# Filter new files only
-new_files = [url for url in file_links if url.split('/')[-1] not in already_uploaded]
-print(f"🆕 Found {len(new_files)} new files.")
+# Track downloaded files
+file_links = []
 
-if not new_files:
-    print(" 🚫 No new files to upload.")
-    exit()
+for row in rows:
+    cells = row.find_all('td')
+    if len(cells) >= 2:
+        link_tag = cells[0].find('a')
+        date_text = cells[1].text.strip()
+        
+        if link_tag and link_tag.get('href', '').endswith('.csv.gz'):
+            file_name = link_tag.get('href')
+            file_url = base_url + file_name
+            
+            if today_str in date_text:
+                file_links.append(file_url)
 
-# Download, combine and upload
-df_list = []
-for url in tqdm(new_files, desc="Processing new files"):
+print(f"🆕 Found {len(file_links)} new file(s) modified today ({today_str}).")
+
+# Download each file
+for url in tqdm(file_links, desc="Downloading today's CSVs"):
     filename = url.split('/')[-1]
-    try:
-        df = pd.read_csv(url, compression='gzip', low_memory=False)
-        if not df.empty:
-            df_list.append(df)
-        # Mark as uploaded
-        with open(log_file, 'a') as f:
-            f.write(filename + '\n')
-    except Exception as e:
-        print(f"⚠️ Error reading {filename}: {e}")
+    file_path = os.path.join(output_dir, filename)
 
-# Combine new data
-if df_list:
-    new_data = pd.concat(df_list, ignore_index=True)
-    print(f"⬆ Uploading {new_data.shape[0]} rows to Domo...")
+    with requests.get(url, stream=True) as r:
+        r.raise_for_status()
+        with open(file_path, 'wb') as f:
+            for chunk in r.iter_content(chunk_size=8192):
+                f.write(chunk)
 
-    with tempfile.NamedTemporaryFile(mode='w', suffix='.csv', delete=False) as tmpfile:
-        new_data.to_csv(tmpfile.name, index=False)
-        domo.datasets.data_import_from_file(DATASET_ID, tmpfile.name)
-
-    print("✅ Upload complete.")
+print("✅ Done downloading today's NOAA files.")
