@@ -48,7 +48,8 @@ for url in tqdm(new_files, desc="Processing new files"):
     filename = url.split('/')[-1]
     try:
         df = pd.read_csv(url, compression='gzip', low_memory=False)
-        df_list.append(df)
+        if not df.empty:
+            df_list.append(df)
         # Mark as uploaded
         with open(log_file, 'a') as f:
             f.write(filename + '\n')
