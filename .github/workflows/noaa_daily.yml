@@ -21,3 +21,4 @@ jobs:
           CLIENT_ID: ${{ secrets.DOMO_CLIENT_ID }}
           CLIENT_SECRET: ${{ secrets.DOMO_CLIENT_SECRET }}
         run: python AutoUpdates.py
+        
