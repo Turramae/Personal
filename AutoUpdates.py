@@ -16,9 +16,6 @@ logging.basicConfig(
     filemode='a'
 )
 
-# Add current timestamp to each row in your DataFrame
-df['load_timestamp'] = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-
 # Domo authentication
 client_id = '152fe71a-bc33-42b3-a38b-e0e82615f71f'
 client_secret = 'a5adb7f9e13561d3371971fa6883639c73c87189cdb626f363aad2449b487495'
@@ -75,6 +72,7 @@ for url in tqdm(new_files, desc="Processing new files"):
     try:
         logging.info(f"Downloading {filename}")
         df = pd.read_csv(url, compression='gzip', low_memory=False)
+        df['load_timestamp'] = datetime.now().strftime('%Y-%m-%d %H:%M:%S')  # ✅ Add timestamp here
         df_list.append(df)
         with open(log_file, 'a') as f:
             f.write(filename + '\n')
