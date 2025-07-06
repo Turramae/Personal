@@ -1,0 +1,23 @@
+name: NOAA Daily Upload
+
+on:
+  schedule:
+    - cron: '0 12 * * *'  # every day at 6 AM CST (12 UTC)
+  workflow_dispatch:
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+      - name: Install dependencies
+        run: pip install requests beautifulsoup4 pandas tqdm pydomo
+      - name: Run script
+        env:
+          CLIENT_ID: ${{ secrets.DOMO_CLIENT_ID }}
+          CLIENT_SECRET: ${{ secrets.DOMO_CLIENT_SECRET }}
+        run: python your_script.py
