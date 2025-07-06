@@ -6,6 +6,7 @@ from tqdm import tqdm
 from pydomo import Domo
 import tempfile
 import logging
+from datetime import datetime
 
 # Setup logging
 logging.basicConfig(
@@ -14,6 +15,9 @@ logging.basicConfig(
     filename='auto_updates.log',
     filemode='a'
 )
+
+# Add current timestamp to each row in your DataFrame
+df['load_timestamp'] = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
 
 # Domo authentication
 client_id = '152fe71a-bc33-42b3-a38b-e0e82615f71f'
