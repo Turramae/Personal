@@ -27,24 +27,6 @@ except Exception as e:
     logging.critical(f"Failed to authenticate with Domo: {e}")
     exit(1)
 
-from pydomo import Domo
-
-# Create schema from DataFrame
-schema = [{"name": col, "type": "STRING"} for col in new_data.columns]
-
-# Create a new dataset with load_timestamp included
-dataset = domo.datasets.create({
-    "name": "NOAA Storm Events with Timestamp",
-    "description": "Includes load_timestamp for freshness monitoring",
-    "schema": {"columns": schema}
-})
-
-# Upload the data
-with tempfile.NamedTemporaryFile(mode='w', suffix='.csv', delete=False) as tmpfile:
-    new_data.to_csv(tmpfile.name, index=False)
-    domo.datasets.data_import_from_file(dataset['id'], tmpfile.name, update_method='REPLACE')
-
-
 # Load list of already uploaded files
 log_file = 'uploaded_files.txt'
 if not os.path.exists(log_file):
@@ -88,10 +70,9 @@ for url in tqdm(new_files, desc="Processing new files"):
     try:
         logging.info(f"Downloading {filename}")
         df = pd.read_csv(url, compression='gzip', low_memory=False)
-        df['load_timestamp'] = datetime.now().strftime('%Y-%m-%d %H:%M:%S')  # ✅ Add timestamp here
+        df['load_timestamp'] = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+        print(df.columns)  # Optional debug print
 
-        print(df.columns)
-        
         df_list.append(df)
         with open(log_file, 'a') as f:
             f.write(filename + '\n')
@@ -102,14 +83,26 @@ for url in tqdm(new_files, desc="Processing new files"):
 if df_list:
     try:
         new_data = pd.concat(df_list, ignore_index=True)
-        logging.info(f"Uploading {new_data.shape[0]} rows to Domo dataset ID: {DATASET_ID}")
+        logging.info(f"Preparing to upload {new_data.shape[0]} rows.")
+
+        # Create schema from DataFrame
+        schema = [{"name": col, "type": "STRING"} for col in new_data.columns]
+
+        # Create a new dataset in Domo
+        dataset = domo.datasets.create({
+            "name": "NOAA Storm Events with Timestamp",
+            "description": "Includes load_timestamp for freshness monitoring",
+            "schema": {"columns": schema}
+        })
 
         with tempfile.NamedTemporaryFile(mode='w', suffix='.csv', delete=False) as tmpfile:
             new_data.to_csv(tmpfile.name, index=False)
-            domo.datasets.data_import_from_file(DATASET_ID, tmpfile.name, update_method='REPLACE')
+            domo.datasets.data_import_from_file(dataset['id'], tmpfile.name, update_method='REPLACE')
 
-        logging.info("Upload to Domo complete.")
+        logging.info("✅ Upload to Domo complete.")
+        logging.info(f"📊 Dataset ID: {dataset['id']}")
+
     except Exception as e:
-        logging.error(f"Failed to upload data to Domo: {e}")
+        logging.error(f"❌ Failed to upload data to Domo: {e}")
 else:
     logging.info("No new data to upload after file processing.")
