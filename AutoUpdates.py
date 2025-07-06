@@ -27,8 +27,7 @@ except Exception as e:
     logging.critical(f"Failed to authenticate with Domo: {e}")
     exit(1)
 
-DATASET_ID = 'e8dc595b-f5be-4cfd-aab9-9b374e483efa/'
-domo.datasets.data_import_from_file(DATASET_ID, tmpfile.name, update_method='REPLACE')
+DATASET_ID = 'NOAA Storm Events'
 
 # Load list of already uploaded files
 log_file = 'uploaded_files.txt'
@@ -91,7 +90,7 @@ if df_list:
 
         with tempfile.NamedTemporaryFile(mode='w', suffix='.csv', delete=False) as tmpfile:
             new_data.to_csv(tmpfile.name, index=False)
-            domo.datasets.data_import_from_file(DATASET_ID, tmpfile.name)
+            domo.datasets.data_import_from_file(DATASET_ID, tmpfile.name, update_method='REPLACE')
 
         logging.info("Upload to Domo complete.")
     except Exception as e:
