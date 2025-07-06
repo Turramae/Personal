@@ -4,14 +4,14 @@ import os
 import pandas as pd
 from tqdm import tqdm
 
-# Step 1: URL of the NOAA storm events directory
+# URL of the NOAA storm events directory
 base_url = 'https://www.ncei.noaa.gov/pub/data/swdi/stormevents/csvfiles/'
 
-# Step 2: Get the page content
+# Get the page content
 response = requests.get(base_url)
 soup = BeautifulSoup(response.text, 'html.parser')
 
-# Step 3: Find all links ending in .csv.gz
+# Find all links ending in .csv.gz
 file_links = [
     base_url + node.get('href') 
     for node in soup.find_all('a') 
@@ -20,11 +20,11 @@ file_links = [
 
 print(f"Found {len(file_links)} files to download.")
 
-# Step 4: Create local output folder
+# Create local output folder
 output_dir = "noaa_csvs"
 os.makedirs(output_dir, exist_ok=True)
 
-# Step 5: Download files (with progress bar)
+# Download files (with progress bar)
 for link in tqdm(file_links[:5], desc="Downloading CSVs"):  # change [:5] to remove limit
     filename = link.split('/')[-1]
     file_path = os.path.join(output_dir, filename)
@@ -41,7 +41,3 @@ for link in tqdm(file_links[:5], desc="Downloading CSVs"):  # change [:5] to rem
 
 print("✅ All files downloaded.")
 
-# Optional: Read one into pandas
-sample_path = os.path.join(output_dir, file_links[0].split('/')[-1])
-df = pd.read_csv(sample_path, compression='gzip')
-print("✅ Sample loaded:", df.shape)
