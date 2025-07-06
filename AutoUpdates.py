@@ -68,4 +68,8 @@ if df_list:
     new_data = pd.concat(df_list, ignore_index=True)
     print(f"⬆ Uploading {new_data.shape[0]} rows to Domo...")
 
-    with tempfile.NamedTempora
+    with tempfile.NamedTemporaryFile(mode='w', suffix='.csv', delete=False) as tmpfile:
+        new_data.to_csv(tmpfile.name, index=False)
+        domo.datasets.data_import_from_file(DATASET_ID, tmpfile.name)
+
+    print("✅ Upload complete.")
