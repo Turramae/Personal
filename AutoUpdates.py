@@ -73,6 +73,9 @@ for url in tqdm(new_files, desc="Processing new files"):
         logging.info(f"Downloading {filename}")
         df = pd.read_csv(url, compression='gzip', low_memory=False)
         df['load_timestamp'] = datetime.now().strftime('%Y-%m-%d %H:%M:%S')  # ✅ Add timestamp here
+
+        print(df.columns)
+        
         df_list.append(df)
         with open(log_file, 'a') as f:
             f.write(filename + '\n')
